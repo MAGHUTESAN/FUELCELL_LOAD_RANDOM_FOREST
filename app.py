@@ -120,5 +120,5 @@ if st.button("🔍 Predict Load and Targets"):
     )
 
 # --- Sidebar Information ---
-#st.sidebar.markdown("---")
-#st.sidebar.info("_")
+st.sidebar.markdown("---")
+st.sidebar.info("Thanks for the constant 😸")
