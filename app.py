@@ -70,7 +70,7 @@ AVERAGE_CELL_VOLTAGE = STACK_VOLTAGE / NUMBER_OF_CELLS
 
 # --- Main Section: Title and Input Fields ---
 st.markdown(
-    "<h1 style='text-align: center; color:#2196F3;'>⚡️ Fuel Cell Load and Target Prediction</h1>",
+    "<h1 style='text-align: center; color:#2196F3;'>⚡ FuelCell AI Predictor</h1>",
     unsafe_allow_html=True,
 )
 st.markdown(
@@ -90,7 +90,7 @@ with col2:
     )
 
 # --- Predict Load and Targets ---
-if st.button("🔍 Predict Load and Targets"):
+if st.button("🔍 Predict "):
     input_data = np.array([[voltage_input, current_input]])
     input_scaled = scaler.transform(input_data)
 
@@ -104,7 +104,7 @@ if st.button("🔍 Predict Load and Targets"):
     st.success(f"📦 Predicted Load Condition: {predicted_load}")
 
     # --- Display Target Predictions ---
-    st.markdown("### 📈 Predicted Target Variables:")
+    st.markdown("### 📈 Predicted Values:")
     target_data = {
         "Variable": target_columns,
         "Predicted Value": [f"{predicted_targets[i]:.2f}" for i in range(len(target_columns))],
