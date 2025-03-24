@@ -3,8 +3,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-import plotly.express as px
-import time  # For animation timing
 
 # --- Load Models and Scaler ---
 rf_load = joblib.load("rf_load_model.pkl")
@@ -36,125 +34,91 @@ target_columns = [
 ]
 
 # --- Streamlit UI Design ---
-st.set_page_config(page_title="Fuel Cell Predictor", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Fuel Cell Load and Target Prediction", layout="wide")
 
-# --- Header ---
+# --- Sidebar: Set Constant Parameters ---
+st.sidebar.markdown("<h1 style='text-align: center;'>⚡</h1>", unsafe_allow_html=True)
+st.sidebar.title("Set Constant Parameters")
+FARADAY_CONSTANT = st.sidebar.number_input(
+    "Faraday Constant (C/mol)", min_value=90000.0, max_value=100000.0, value=96485.0, step=0.01
+)
+STACK_RATED_POWER = st.sidebar.number_input(
+    "Stack Rated Power (W)", min_value=50.0, max_value=200.0, value=100.0, step=0.01
+)
+NUMBER_OF_CELLS = st.sidebar.number_input(
+    "Number of Cells", min_value=10, max_value=50, value=20, step=1
+)
+STACK_VOLTAGE = st.sidebar.number_input(
+    "Stack Voltage (V)", min_value=6.0, max_value=24.0, value=12.0, step=0.01
+)
+EFFECTIVE_AREA_PEM_CELL = st.sidebar.number_input(
+    "Effective Area of PEM Cell (cm²)", min_value=10.0, max_value=50.0, value=26.0, step=0.1
+)
+TIME_CONVERSION = st.sidebar.number_input(
+    "Time Conversion (sec/min)", min_value=10.0, max_value=120.0, value=60.0, step=0.1
+)
+MOLE_TO_VOLUME_CONVERSION = st.sidebar.number_input(
+    "Mole to Volume Conversion (L/mol)", min_value=20.0, max_value=30.0, value=23.65, step=0.01
+)
+REFERENCE_VOLTAGE_HEATING = st.sidebar.number_input(
+    "Reference Voltage for Heating (V)", min_value=1.0, max_value=2.0, value=1.25, step=0.01
+)
+MAXIMUM_FUEL_CELL_VOLTAGE = st.sidebar.number_input(
+    "Maximum Fuel Cell Voltage (V)", min_value=1.0, max_value=2.0, value=1.48, step=0.01
+)
+AVERAGE_CELL_VOLTAGE = STACK_VOLTAGE / NUMBER_OF_CELLS
+
+# --- Main Section: Title and Input Fields ---
 st.markdown(
-    """
-    <h1 style='text-align: center; color: #1E90FF; font-family: Arial;'>⚡ FuelCell AI Predictor</h1>
-    <p style='text-align: center; color: #666;'>Predict fuel cell performance with real-time insights</p>
-    """, 
-    unsafe_allow_html=True
+    "<h1 style='text-align: center; color:#2196F3;'>⚡ FuelCell AI Predictor</h1>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    "<h3 style='text-align: center;'>🎛 Input Voltage and Current</h3>",
+    unsafe_allow_html=True,
 )
 
-# --- Sidebar: Interactive Parameters ---
-with st.sidebar:
-    st.markdown("### ⚙️ Configuration")
-    FARADAY_CONSTANT = st.slider("Faraday Constant (C/mol)", 90000.0, 100000.0, 96485.0, 0.01)
-    STACK_RATED_POWER = st.slider("Stack Rated Power (W)", 50.0, 200.0, 100.0, 0.01)
-    NUMBER_OF_CELLS = st.slider("Number of Cells", 10, 50, 20, 1)
-    STACK_VOLTAGE = st.slider("Stack Voltage (V)", 6.0, 24.0, 12.0, 0.01)
-    EFFECTIVE_AREA_PEM_CELL = st.slider("PEM Cell Area (cm²)", 10.0, 50.0, 26.0, 0.1)
-    TIME_CONVERSION = st.slider("Time Conversion (sec/min)", 10.0, 120.0, 60.0, 0.1)
-    MOLE_TO_VOLUME_CONVERSION = st.slider("Mole to Volume (L/mol)", 20.0, 30.0, 23.65, 0.01)
-    REFERENCE_VOLTAGE_HEATING = st.slider("Ref Voltage Heating (V)", 1.0, 2.0, 1.25, 0.01)
-    MAXIMUM_FUEL_CELL_VOLTAGE = st.slider("Max Fuel Cell Voltage (V)", 1.0, 2.0, 1.48, 0.01)
-    AVERAGE_CELL_VOLTAGE = STACK_VOLTAGE / NUMBER_OF_CELLS
-    st.markdown(f"**Avg Cell Voltage:** {AVERAGE_CELL_VOLTAGE:.2f} V")
-
-# --- Main Section: Input ---
-st.markdown("### 🎚 Input Parameters", unsafe_allow_html=True)
+# --- Input Section for Voltage and Current ---
 col1, col2 = st.columns(2)
 with col1:
-    voltage_input = st.slider("Voltage (V)", 0.0, 20.0, 7.5, 0.01, format="%.2f")
+    voltage_input = st.number_input(
+        "Enter Voltage (V)", min_value=0.0, max_value=20.0, value=7.5, step=0.01, format="%.2f"
+    )
 with col2:
-    current_input = st.slider("Current (A)", 0.0, 10.0, 6.5, 0.01, format="%.2f")
+    current_input = st.number_input(
+        "Enter Current (A)", min_value=0.0, max_value=10.0, value=6.5, step=0.01, format="%.2f"
+    )
 
-# --- Prediction with Animation ---
-predict_toggle = st.checkbox("Enable Real-Time Prediction", value=True)
-
-if predict_toggle or st.button("🔍 Predict Now"):
-    # --- Prepare Input Data ---
+# --- Predict Load and Targets ---
+if st.button("🔍 Predict "):
     input_data = np.array([[voltage_input, current_input]])
     input_scaled = scaler.transform(input_data)
 
-    # --- Predictions ---
+    # --- Load Prediction ---
     predicted_load = rf_load.predict(input_scaled).round().astype(int)[0]
+
+    # --- Target Predictions ---
     predicted_targets = rf_target.predict(input_scaled)[0]
 
-    # --- Animation: Loading Spinner ---
-    with st.spinner("Calculating Predictions..."):
-        progress_bar = st.progress(0)
-        for i in range(100):
-            time.sleep(0.01)  # Simulate processing time
-            progress_bar.progress(i + 1)
-        time.sleep(0.5)  # Brief pause after completion
+    # --- Display Results ---
+    st.success(f"📦 Predicted Load Condition: {predicted_load}")
 
-    # --- Fade-In Effect for Results ---
-    result_container = st.empty()
-    result_container.markdown(
-        f"<h3 style='text-align: center; color: #32CD32; opacity: 0; transition: opacity 0.5s;'>📦 Predicted Load: {predicted_load}</h3>",
-        unsafe_allow_html=True
-    )
-    time.sleep(0.1)  # Small delay before fade-in
-    result_container.markdown(
-        f"<h3 style='text-align: center; color: #32CD32; opacity: 1; transition: opacity 0.5s;'>📦 Predicted Load: {predicted_load}</h3>",
-        unsafe_allow_html=True
-    )
-
-    # --- Display Predicted Targets with Animation ---
-    st.markdown("### 📊 Prediction Results")
+    # --- Display Target Predictions ---
+    st.markdown("### 📈 Predicted Values:")
     target_data = {
         "Variable": target_columns,
-        "Value": [f"{val:.2f}" for val in predicted_targets]
+        "Predicted Value": [f"{predicted_targets[i]:.2f}" for i in range(len(target_columns))],
     }
     target_df = pd.DataFrame(target_data)
 
-    # --- Animated Table Reveal ---
-    table_container = st.empty()
-    table_container.markdown(
-        "<div style='opacity: 0; transition: opacity 0.5s;'>Table Loading...</div>",
-        unsafe_allow_html=True
-    )
-    time.sleep(0.3)
-    table_container.dataframe(
-        target_df.style.set_properties(**{
-            'text-align': 'center',
-            'background-color': '#f5f5f5',
-            'border-radius': '5px',
-            'padding': '5px'
-        }).set_table_styles([
-            {'selector': 'th', 'props': [('background-color', '#1E90FF'), ('color', 'white'), ('text-align', 'center')]}
-        ]),
-        use_container_width=True
+    # --- Centering the DataFrame ---
+    st.markdown(
+        target_df.style.set_table_styles(
+            [{"selector": "th", "props": [("text-align", "center")]}]
+        ).to_html(),
+        unsafe_allow_html=True,
     )
 
-    # --- Interactive Visualization with Fade-In ---
-    st.markdown("### 📈 Visual Insights")
-    chart_container = st.empty()
-    chart_container.markdown(
-        "<div style='opacity: 0; transition: opacity 0.5s;'>Chart Loading...</div>",
-        unsafe_allow_html=True
-    )
-    time.sleep(0.3)
-    fig = px.bar(
-        target_df, 
-        x="Variable", 
-        y="Value", 
-        title="Predicted Metrics",
-        color="Variable",
-        height=400,
-        text=target_df["Value"]
-    )
-    fig.update_traces(textposition='auto')
-    fig.update_layout(showlegend=False, bargap=0.2)
-    chart_container.plotly_chart(fig, use_container_width=True)
-
-# --- Footer ---
-st.markdown(
-    """
-    <hr>
-    <p style='text-align: center; color: #888;'>Powered by xAI | Built with Streamlit</p>
-    """, 
-    unsafe_allow_html=True
-)
+# --- Sidebar Information ---
+#st.sidebar.markdown("---")
+#st.sidebar.info("")
