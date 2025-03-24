@@ -3,7 +3,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-import plotly.express as px  # For interactive charts
+import plotly.express as px
+import time  # For animation timing
 
 # --- Load Models and Scaler ---
 rf_load = joblib.load("rf_load_model.pkl")
@@ -37,7 +38,7 @@ target_columns = [
 # --- Streamlit UI Design ---
 st.set_page_config(page_title="Fuel Cell Predictor", layout="wide", initial_sidebar_state="expanded")
 
-# --- Header with Custom Styling ---
+# --- Header ---
 st.markdown(
     """
     <h1 style='text-align: center; color: #1E90FF; font-family: Arial;'>⚡ FuelCell AI Predictor</h1>
@@ -59,10 +60,9 @@ with st.sidebar:
     REFERENCE_VOLTAGE_HEATING = st.slider("Ref Voltage Heating (V)", 1.0, 2.0, 1.25, 0.01)
     MAXIMUM_FUEL_CELL_VOLTAGE = st.slider("Max Fuel Cell Voltage (V)", 1.0, 2.0, 1.48, 0.01)
     AVERAGE_CELL_VOLTAGE = STACK_VOLTAGE / NUMBER_OF_CELLS
-
     st.markdown(f"**Avg Cell Voltage:** {AVERAGE_CELL_VOLTAGE:.2f} V")
 
-# --- Main Section: Input and Real-Time Prediction ---
+# --- Main Section: Input ---
 st.markdown("### 🎚 Input Parameters", unsafe_allow_html=True)
 col1, col2 = st.columns(2)
 with col1:
@@ -70,7 +70,7 @@ with col1:
 with col2:
     current_input = st.slider("Current (A)", 0.0, 10.0, 6.5, 0.01, format="%.2f")
 
-# --- Real-Time Prediction Toggle ---
+# --- Prediction with Animation ---
 predict_toggle = st.checkbox("Enable Real-Time Prediction", value=True)
 
 if predict_toggle or st.button("🔍 Predict Now"):
@@ -82,13 +82,27 @@ if predict_toggle or st.button("🔍 Predict Now"):
     predicted_load = rf_load.predict(input_scaled).round().astype(int)[0]
     predicted_targets = rf_target.predict(input_scaled)[0]
 
-    # --- Display Load Condition ---
-    st.markdown(
-        f"<h3 style='text-align: center; color: #32CD32;'>📦 Predicted Load: {predicted_load}</h3>",
+    # --- Animation: Loading Spinner ---
+    with st.spinner("Calculating Predictions..."):
+        progress_bar = st.progress(0)
+        for i in range(100):
+            time.sleep(0.01)  # Simulate processing time
+            progress_bar.progress(i + 1)
+        time.sleep(0.5)  # Brief pause after completion
+
+    # --- Fade-In Effect for Results ---
+    result_container = st.empty()
+    result_container.markdown(
+        f"<h3 style='text-align: center; color: #32CD32; opacity: 0; transition: opacity 0.5s;'>📦 Predicted Load: {predicted_load}</h3>",
+        unsafe_allow_html=True
+    )
+    time.sleep(0.1)  # Small delay before fade-in
+    result_container.markdown(
+        f"<h3 style='text-align: center; color: #32CD32; opacity: 1; transition: opacity 0.5s;'>📦 Predicted Load: {predicted_load}</h3>",
         unsafe_allow_html=True
     )
 
-    # --- Display Predicted Targets ---
+    # --- Display Predicted Targets with Animation ---
     st.markdown("### 📊 Prediction Results")
     target_data = {
         "Variable": target_columns,
@@ -96,8 +110,14 @@ if predict_toggle or st.button("🔍 Predict Now"):
     }
     target_df = pd.DataFrame(target_data)
 
-    # --- Styled Table ---
-    st.dataframe(
+    # --- Animated Table Reveal ---
+    table_container = st.empty()
+    table_container.markdown(
+        "<div style='opacity: 0; transition: opacity 0.5s;'>Table Loading...</div>",
+        unsafe_allow_html=True
+    )
+    time.sleep(0.3)
+    table_container.dataframe(
         target_df.style.set_properties(**{
             'text-align': 'center',
             'background-color': '#f5f5f5',
@@ -109,8 +129,14 @@ if predict_toggle or st.button("🔍 Predict Now"):
         use_container_width=True
     )
 
-    # --- Interactive Visualization ---
+    # --- Interactive Visualization with Fade-In ---
     st.markdown("### 📈 Visual Insights")
+    chart_container = st.empty()
+    chart_container.markdown(
+        "<div style='opacity: 0; transition: opacity 0.5s;'>Chart Loading...</div>",
+        unsafe_allow_html=True
+    )
+    time.sleep(0.3)
     fig = px.bar(
         target_df, 
         x="Variable", 
@@ -122,7 +148,7 @@ if predict_toggle or st.button("🔍 Predict Now"):
     )
     fig.update_traces(textposition='auto')
     fig.update_layout(showlegend=False, bargap=0.2)
-    st.plotly_chart(fig, use_container_width=True)
+    chart_container.plotly_chart(fig, use_container_width=True)
 
 # --- Footer ---
 st.markdown(
