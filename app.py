@@ -23,14 +23,14 @@ AVERAGE_CELL_VOLTAGE = STACK_VOLTAGE / NUMBER_OF_CELLS
 
 # --- Define Target Columns ---
 target_columns = [
-    "Power Output",
-    "Efficiency",
-    "Hydrogen Consumption Rate",
-    "Oxygen Consumption Rate",
-    "Water Production",
-    "Heat Generation Rate",
-    "Power Density",
-    "Current Density",
+    "Power Output (W)",
+    "Efficiency (%)",
+    "Hydrogen Consumption Rate (mol/sec)",
+    "Oxygen Consumption Rate (mol/sec)",
+    "Water Production (mol/sec)",
+    "Heat Generation Rate (W)",
+    "Power Density (W/cm²)",
+    "Current Density (A/cm²)",
 ]
 
 # --- Streamlit UI Design ---
