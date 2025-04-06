@@ -1,7 +1,7 @@
 [theme]
-base="dark"
-primaryColor="#00BFFF"  # Sky blue for highlights
-backgroundColor="#121212"  # Deep black for main background
-secondaryBackgroundColor="#1A237E"  # Dark blue sidebar
-textColor="#E0E0E0"  # Light grey for text
+base="light"
+primaryColor="#00BFFF"                
+backgroundColor="#FFFFFF"             
+secondaryBackgroundColor="#E3F2FD"    
+textColor="#1A1A1A"                 
 font="monospace"
